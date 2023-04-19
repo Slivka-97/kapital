@@ -1,4 +1,6 @@
 #from django.contrib.postgres.fields import ArrayField
+from datetime import date
+
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -10,28 +12,39 @@ TYPE = [
 ]
 
 
+TYPE_CURRENCY = [
+    ('RUB', 'рубль'),
+    ('USD', 'доллар'),
+    ('EUR', 'евро'),
+]
+
+
 class InvestmentPortfolio(models.Model):
 
-    class Meta:
-        verbose_name = 'Инвестиционный портфель'
-        verbose_name_plural = 'Инвестиционные портфели'
-
-    user = models.OneToOneField(
+    user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
-        related_name='user_portfolio'
+        on_delete=models.CASCADE
     )
-    is_removed = models.BooleanField(
-        verbose_name='Удалено',
-        default=False,
-        db_index=True,
+    year = models.DateField(
+        default=date.today()
     )
-    name = models.CharField(max_length=50)
-    active_sum = models.IntegerField(blank=False, default=0)
-    # stocks = ArrayField(
-    #     models.CharField(max_length=50, blank=True),
-    # )
-    stocks = models.CharField(max_length=50, blank=True),
+    currency = models.CharField(
+        max_length=3,
+        choices=TYPE_CURRENCY,
+        null=False,
+        blank=False,
+        verbose_name='валюта'
+    )
+    fact_price = models.IntegerField(
+        null=False,
+        blank=False,
+        verbose_name='Фактическая стоимость портфеля на начало года'
+    )
+    plan_price = models.IntegerField(
+        null=False,
+        blank=False,
+        verbose_name='Планируемая стоимость портфеля на начало года'
+    )
 
 
 class InvestmentPurpose(models.Model):
@@ -40,17 +53,18 @@ class InvestmentPurpose(models.Model):
         verbose_name = 'Инвестиционная цель'
         verbose_name_plural = 'Инвестиционные цели'
 
+    age = models.PositiveIntegerField(
+        help_text='возраст'
+    )
+    initial_sum = models.PositiveIntegerField(
+        help_text='начальный капитал'
+    )
     type = models.CharField(
         max_length=254,
         choices=TYPE,
         null=False,
         blank=False,
         verbose_name='Вариант вопроса инвестиционных целей'
-    )
-    is_removed = models.BooleanField(
-        verbose_name='Удалено',
-        default=False,
-        db_index=True,
     )
     period_monthly_invest = models.IntegerField(
         default=0,
@@ -87,10 +101,70 @@ class InvestmentPurpose(models.Model):
         null=True,
         verbose_name='размер ежемесячной ренты'
     )
+    investment_portfolio = models.ForeignKey(
+        InvestmentPortfolio,
+        blank=False,
+        null=False,
+        related_name='investment_purposes',
+        on_delete=models.CASCADE
+    )
 
 
-
-
+class Compare(models.Model):
+    data = models.DateField()
+    monthly_payment_plan = models.IntegerField(
+        default=0,
+        verbose_name='Ежемесячный взнос план'
+    )
+    monthly_payment_fact = models.IntegerField(
+        default=0,
+        verbose_name='Ежемесячный взнос Факт'
+    )
+    invested_funds_plan = models.IntegerField(
+        default=0,
+        verbose_name='Вложено средств с накопительным итогом план'
+    )
+    invested_funds_fact = models.IntegerField(
+        default=0,
+        verbose_name='Вложено средств с накопительным итогом Факт'
+    )
+    portfolio_value_end_month_plan = models.IntegerField(
+        default=0,
+        verbose_name='Стоимость портфеля на конец месяца план'
+    )
+    portfolio_value_end_month_fact = models.IntegerField(
+        default=0,
+        verbose_name='Стоимость портфеля на конец месяца Факт'
+    )
+    average_monthly_value_plan = models.IntegerField(
+        default=0,
+        verbose_name='Среднемесячная доходность план'
+    )
+    average_monthly_value_fact = models.IntegerField(
+        default=0,
+        verbose_name='Среднемесячная доходность Факт'
+    )
+    profit_month_plan = models.IntegerField(
+        default=0,
+        verbose_name='Прибыль за месяц план'
+    )
+    profit_month_fact = models.IntegerField(
+        default=0,
+        verbose_name='Прибыль за месяц Факт'
+    )
+    loss_month_plan = models.IntegerField(
+        default=0,
+        verbose_name='Убыток за месяц план'
+    )
+    loss_month_fact = models.IntegerField(
+        default=0,
+        verbose_name='Убыток за месяц Факт'
+    )
+    document = models.ForeignKey(
+        InvestmentPortfolio,
+        on_delete=models.CASCADE,
+        related_name='compare'
+    )
 
 
 
