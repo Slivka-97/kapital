@@ -4,6 +4,12 @@ from .utils import get_year_achievement_goal
 from rest_framework import serializers
 
 
+class CompareSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvestmentPurpose
+        fields = '__all__'
+
+
 class InvestmentPurposeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentPurpose
