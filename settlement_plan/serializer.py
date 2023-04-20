@@ -11,8 +11,9 @@ from rest_framework import serializers
 class InvestmentPurposeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentPurpose
-        fields = ('id', 'age', 'initial_sum', 'type', 'period_monthly_invest', 'start_data_invest', 'age_goal_achievement',
-                  'average_sum', 'percent_rent_month', 'sum_rent_month', 'investment_portfolio', 'investment_sum')
+        fields = ('id', 'age', 'initial_sum', 'type', 'period_monthly_invest', 'start_data_invest',
+                  'age_goal_achievement', 'average_sum', 'percent_rent_month', 'sum_rent_month',
+                  'investment_portfolio', 'investment_sum')
 
     id = serializers.SlugField(read_only=True)
     initial_sum = serializers.IntegerField(required=False)
