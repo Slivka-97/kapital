@@ -3,6 +3,7 @@ import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Sum
 
 TYPE = [
     ('investment_sum', 'Какую сумму необходимо инвестировать ежемесячно в течение'),
@@ -185,10 +186,9 @@ class Compare(models.Model):
         related_name='compares'
     )
 
-
-
-
-
-
+    @staticmethod
+    def get_sum_invested_funds_fact(purpose):
+        res = Compare.objects.filter(purpose=purpose.id).aggregate(Sum("monthly_payment_fact"))
+        return res['monthly_payment_fact__sum']
 
 
