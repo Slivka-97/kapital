@@ -1,5 +1,5 @@
 #from django.contrib.postgres.fields import ArrayField
-from datetime import date
+import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -26,7 +26,7 @@ class InvestmentPortfolio(models.Model):
         on_delete=models.CASCADE
     )
     year = models.DateField(
-        default=date.today()
+        default=datetime.date.today()
     )
     currency = models.CharField(
         max_length=3,
@@ -62,8 +62,6 @@ class InvestmentPurpose(models.Model):
     type = models.CharField(
         max_length=254,
         choices=TYPE,
-        null=False,
-        blank=False,
         verbose_name='Вариант вопроса инвестиционных целей'
     )
     period_monthly_invest = models.IntegerField(
@@ -81,7 +79,6 @@ class InvestmentPurpose(models.Model):
         verbose_name='планируемый возраст достижения цели'
     )
     year_achievement_goal = models.IntegerField(
-        max_length=4,
         blank=True,
         null=True,
         verbose_name='год достижения цели'
@@ -103,8 +100,6 @@ class InvestmentPurpose(models.Model):
     )
     investment_portfolio = models.ForeignKey(
         InvestmentPortfolio,
-        blank=False,
-        null=False,
         related_name='investment_purposes',
         on_delete=models.CASCADE
     )
@@ -114,51 +109,75 @@ class Compare(models.Model):
     data = models.DateField()
     monthly_payment_plan = models.IntegerField(
         default=0,
-        verbose_name='Ежемесячный взнос план'
+        verbose_name='Ежемесячный взнос план',
+        blank=True,
+        null=True,
     )
     monthly_payment_fact = models.IntegerField(
         default=0,
-        verbose_name='Ежемесячный взнос Факт'
+        verbose_name='Ежемесячный взнос Факт',
+        blank=True,
+        null=True,
     )
     invested_funds_plan = models.IntegerField(
         default=0,
-        verbose_name='Вложено средств с накопительным итогом план'
+        verbose_name='Вложено средств с накопительным итогом план',
+        blank=True,
+        null=True,
     )
     invested_funds_fact = models.IntegerField(
         default=0,
-        verbose_name='Вложено средств с накопительным итогом Факт'
+        verbose_name='Вложено средств с накопительным итогом Факт',
+        blank=True,
+        null=True,
     )
     portfolio_value_end_month_plan = models.IntegerField(
         default=0,
-        verbose_name='Стоимость портфеля на конец месяца план'
+        verbose_name='Стоимость портфеля на конец месяца план',
+        blank=True,
+        null=True,
     )
     portfolio_value_end_month_fact = models.IntegerField(
         default=0,
-        verbose_name='Стоимость портфеля на конец месяца Факт'
+        verbose_name='Стоимость портфеля на конец месяца Факт',
+        blank=True,
+        null=True,
     )
     average_monthly_value_plan = models.IntegerField(
         default=0,
-        verbose_name='Среднемесячная доходность план'
+        verbose_name='Среднемесячная доходность план',
+        blank=True,
+        null=True,
     )
     average_monthly_value_fact = models.IntegerField(
         default=0,
-        verbose_name='Среднемесячная доходность Факт'
+        verbose_name='Среднемесячная доходность Факт',
+        blank=True,
+        null=True,
     )
     profit_month_plan = models.IntegerField(
         default=0,
-        verbose_name='Прибыль за месяц план'
+        verbose_name='Прибыль за месяц план',
+        blank=True,
+        null=True,
     )
     profit_month_fact = models.IntegerField(
         default=0,
-        verbose_name='Прибыль за месяц Факт'
+        verbose_name='Прибыль за месяц Факт',
+        blank=True,
+        null=True,
     )
     loss_month_plan = models.IntegerField(
         default=0,
-        verbose_name='Убыток за месяц план'
+        verbose_name='Убыток за месяц план',
+        blank=True,
+        null=True,
     )
     loss_month_fact = models.IntegerField(
         default=0,
-        verbose_name='Убыток за месяц Факт'
+        verbose_name='Убыток за месяц Факт',
+        blank=True,
+        null=True,
     )
     id_portfolio = models.ForeignKey(
         InvestmentPortfolio,
