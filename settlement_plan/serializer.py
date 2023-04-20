@@ -14,7 +14,6 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
     initial_sum = serializers.IntegerField(required=False)
     percent_rent_month = serializers.IntegerField(default=5)
 
-
     def validate(self, data):
         if not data.get('initial_sum'):
             portfolio = InvestmentPortfolio.objects.get(id=data['investment_portfolio'].id)

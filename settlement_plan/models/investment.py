@@ -160,7 +160,7 @@ class Compare(models.Model):
         default=0,
         verbose_name='Убыток за месяц Факт'
     )
-    document = models.ForeignKey(
+    id_portfolio = models.ForeignKey(
         InvestmentPortfolio,
         on_delete=models.CASCADE,
         related_name='compare'
