@@ -62,7 +62,7 @@ class InvestmentPurpose(models.Model):
     type = models.CharField(
         max_length=254,
         choices=TYPE,
-        verbose_name='Вариант вопроса инвестиционных целей'
+        verbose_name='Вариант инвестирования'
     )
     period_monthly_invest = models.IntegerField(
         default=0,
@@ -179,10 +179,10 @@ class Compare(models.Model):
         blank=True,
         null=True,
     )
-    id_portfolio = models.ForeignKey(
-        InvestmentPortfolio,
+    purpose = models.ForeignKey(
+        InvestmentPurpose,
         on_delete=models.CASCADE,
-        related_name='compare'
+        related_name='compares'
     )
 
 
