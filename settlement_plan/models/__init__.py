@@ -1,1 +1,1 @@
-from .investment import InvestmentPurpose, InvestmentPortfolio
+from .investment import InvestmentPurpose, InvestmentPortfolio, Compare

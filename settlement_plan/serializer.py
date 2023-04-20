@@ -27,13 +27,13 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         _investment_sum = validated_data.pop('investment_sum')
-        inst_investment_purpose = InvestmentPurpose.objects.get_or_create(
+        inst_investment_purpose = InvestmentPurpose.objects.create(
             year_achievement_goal=get_year_achievement_goal(self.data),
             **validated_data
         )
-        self._create_compare(_investment_sum, inst_investment_purpose[0], validated_data)
+        self._create_compare(_investment_sum, inst_investment_purpose, validated_data)
 
-        return inst_investment_purpose[0]
+        return inst_investment_purpose
 
     @atomic
     def _create_compare(self, investment_sum, purpose, data):
@@ -51,7 +51,7 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
                     data=next_month_date,
                     monthly_payment_plan=investment_sum,
                     invested_funds_plan=invested_funds_plan,
-                    portfolio_value_end_month_plan=portfolio_value_end_month_plan,
+                    portfolio_value_end_month_plan=portfolio_value_end_month_plan, #???
                     average_monthly_value_plan=(portfolio_value_end_month_plan//100)*5,
                     purpose=purpose,
                 ))
@@ -60,8 +60,8 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
                 next_month_date = next_month_date + datetime.timedelta(days=days)
 
             Compare.objects.bulk_create(lst_compare)
-        except BaseException as x:
-            raise Exception(x)
+        except Exception as ex:
+            raise Exception(ex)
 
 
 class InvestmentPortfolioSerializer(serializers.ModelSerializer):
@@ -83,5 +83,29 @@ class InvestmentPurposeBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentPurpose
         fields = "__all__"
+
+
+class CompareBaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Compare
+        fields = "__all__"
+
+    purpose = serializers.SlugField(required=False)
+
+    def update(self, instance, validated_data):
+        try:
+            monthly_payment_fact = validated_data['monthly_payment_fact']
+            invested_funds_fact = instance.get_sum_invested_funds_fact(InvestmentPurpose.objects.get(id=instance.purpose.id))
+            instance.invested_funds_fact = invested_funds_fact + monthly_payment_fact
+            portfolio_value_end_month_fact = instance.purpose.initial_sum + invested_funds_fact + monthly_payment_fact
+            instance.portfolio_value_end_month_fact = portfolio_value_end_month_fact
+            instance.monthly_payment_fact = monthly_payment_fact
+            instance.average_monthly_value_fact = (portfolio_value_end_month_fact//100)*5
+
+            instance.save()
+        except Exception as ex:
+            raise Exception(ex)
+
+        return instance
 
 

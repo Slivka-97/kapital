@@ -1,19 +1,20 @@
+from datetime import datetime
+
 from rest_framework import permissions, status
-from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView
+from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView, UpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import InvestmentPurpose, InvestmentPortfolio
-from .serializer import InvestmentPurposeSerializer, InvestmentPortfolioSerializer
+from .models import InvestmentPurpose, InvestmentPortfolio, Compare
+from .serializer import InvestmentPurposeSerializer, InvestmentPortfolioSerializer, CompareBaseSerializer
 from .utils import Calculate
 
 
-class MixinPermissionAdmin:
-    permission_classes = [permissions.IsAdminUser]
-
-
-class RecordTypeInvestView(CreateAPIView):
+class MixinPermissionAuthenticated:
     permission_classes = [permissions.IsAuthenticated]
+
+
+class RecordTypeInvestView(MixinPermissionAuthenticated, CreateAPIView):
     serializer_class = InvestmentPurposeSerializer
 
     def post(self, request, *args, **kwargs):
@@ -21,8 +22,7 @@ class RecordTypeInvestView(CreateAPIView):
         return super().post(request, args, kwargs)
 
 
-class CalculateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+class CalculateView(MixinPermissionAuthenticated,APIView):
 
     def post(self, request, *args, **kwargs):
         type_invest = kwargs["type_invest"]
@@ -34,7 +34,7 @@ class CalculateView(APIView):
         return Response(result)
 
 
-class ListInvestmentPurposeView(MixinPermissionAdmin, ListAPIView):
+class ListInvestmentPurposeView(MixinPermissionAuthenticated, ListAPIView):
     queryset = InvestmentPurpose.objects.all()
     serializer_class = InvestmentPurposeSerializer
 
@@ -47,11 +47,48 @@ class ListInvestmentPurposeView(MixinPermissionAdmin, ListAPIView):
         return qs
 
 
-class ListAndCreateInvestmentPortfolioView(MixinPermissionAdmin, ListCreateAPIView):
+class ListAndCreateInvestmentPortfolioView(MixinPermissionAuthenticated, ListCreateAPIView):
     queryset = InvestmentPortfolio.objects.all()
     serializer_class = InvestmentPortfolioSerializer
 
     def post(self, request, *args, **kwargs):
         request.data['user'] = request.user.id
         return super().post(request, args, kwargs)
+
+
+class ListCompareView(MixinPermissionAuthenticated, ListAPIView):
+    queryset = Compare.objects.all()
+    serializer_class = CompareBaseSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if not self.request.user.is_superuser:
+            qs = Compare.objects.filter(purpose__investment_portfolio__user_id=self.request.user.id). \
+                select_related('purpose', 'purpose__investment_portfolio')
+
+        return qs
+
+
+class UpdateForPkCompareView(MixinPermissionAuthenticated, UpdateAPIView):
+    queryset = Compare.objects.all()
+    serializer_class = CompareBaseSerializer
+
+
+class UpdateCompareView(UpdateForPkCompareView):
+    queryset = Compare.objects.all()
+    serializer_class = CompareBaseSerializer
+
+    def get_object(self):
+        qs = self.get_queryset()
+        purpose = self.request.data['purpose']
+        data = datetime.strptime(self.request.data['data'], '%Y-%m-%d').date()
+
+        data_year = data.year
+        data_month = data.month
+        obj = qs.select_related('purpose', 'purpose__investment_portfolio').get(purpose__investment_portfolio__user_id=self.request.user.id, purpose=purpose,
+                     data__year=data_year, data__month=data_month)
+
+        return obj
+
+
 
