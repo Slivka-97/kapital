@@ -4,21 +4,21 @@ import calendar
 from django.db.transaction import atomic
 
 from .models.investment import InvestmentPortfolio, InvestmentPurpose, Compare
-from .utils import get_year_achievement_goal
 from rest_framework import serializers
 
 
 class InvestmentPurposeSerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentPurpose
-        fields = ('id', 'age', 'initial_sum', 'type', 'period_monthly_invest', 'start_data_invest',
-                  'age_goal_achievement', 'average_sum', 'percent_rent_month', 'sum_rent_month',
-                  'investment_portfolio', 'investment_sum')
+        fields = ('id', 'age', 'initial_sum', 'type', 'period_intensity_invest', 'start_data_invest',
+                  'age_goal_achievement', 'annual_return_investment', 'percent_rent_month', 'sum_rent_month',
+                  'investment_portfolio', 'investment_sum', 'year_achievement_goal')
 
     id = serializers.SlugField(read_only=True)
     initial_sum = serializers.IntegerField(required=False)
     percent_rent_month = serializers.IntegerField(default=5)
     investment_sum = serializers.IntegerField(write_only=True)
+    year_achievement_goal = serializers.IntegerField(required=False)
 
     def validate(self, data):
         if not data.get('initial_sum'):
@@ -28,8 +28,10 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         _investment_sum = validated_data.pop('investment_sum')
+
         inst_investment_purpose = InvestmentPurpose.objects.create(
-            year_achievement_goal=get_year_achievement_goal(self.data),
+            year_achievement_goal=InvestmentPurpose.get_year_achievement_goal(self.data)
+            if validated_data.get('year_achievement_goal') is None else validated_data.pop('year_achievement_goal'),
             **validated_data
         )
         self._create_compare(_investment_sum, inst_investment_purpose, validated_data)
@@ -40,9 +42,10 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
     def _create_compare(self, investment_sum, purpose, data):
         lst_compare = list()
         next_month_date = data['start_data_invest']
-        month_invest = data['period_monthly_invest'] * 12
+        month_invest = data['period_intensity_invest'] * 12
         invested_funds_plan = 0
         portfolio_value_end_month_plan = data['initial_sum']
+        percent_rent_month = data['percent_rent_month']
         try:
             for _ in range(month_invest):
                 invested_funds_plan += investment_sum
@@ -53,7 +56,7 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
                     monthly_payment_plan=investment_sum,
                     invested_funds_plan=invested_funds_plan,
                     portfolio_value_end_month_plan=portfolio_value_end_month_plan, #???
-                    average_monthly_value_plan=(portfolio_value_end_month_plan//100)*5,
+                    average_monthly_value_plan=(portfolio_value_end_month_plan / 100) * (percent_rent_month / 12),
                     purpose=purpose,
                 ))
 
@@ -108,5 +111,22 @@ class CompareBaseSerializer(serializers.ModelSerializer):
             raise Exception(ex)
 
         return instance
+
+
+class CalculateSerializer(serializers.Serializer):
+
+    class Meta:
+        fields = ('age', 'initial_sum', 'percent_rent_month', 'sum_rent_month', 'year_achievement_goal',
+                  'annual_return_investment', 'investment_sum', 'period_intensity_invest')
+
+    age = serializers.IntegerField(required=True)
+    initial_sum = serializers.IntegerField(required=True)
+    percent_rent_month = serializers.IntegerField(required=True)
+    annual_return_investment = serializers.IntegerField(required=True)
+    year_achievement_goal = serializers.IntegerField(required=False)
+    investment_sum = serializers.IntegerField(required=False)
+    period_intensity_invest = serializers.IntegerField(required=False)
+    sum_rent_month = serializers.IntegerField(required=False)
+
 
 

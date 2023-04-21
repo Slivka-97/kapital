@@ -31,6 +31,8 @@ class CalculateView(MixinPermissionAuthenticated,APIView):
             return Response('type_invest not a valid', status=status.HTTP_400_BAD_REQUEST)
 
         result = fun(request.data)
+        if error := result.get('error'):
+            return Response(error, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
 
 
