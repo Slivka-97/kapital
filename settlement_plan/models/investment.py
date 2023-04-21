@@ -65,7 +65,7 @@ class InvestmentPurpose(models.Model):
         choices=TYPE,
         verbose_name='Вариант инвестирования'
     )
-    period_monthly_invest = models.IntegerField(
+    period_intensity_invest = models.IntegerField(
         default=0,
         verbose_name='период активного ежемесячного инвестирования'
     )
@@ -84,7 +84,7 @@ class InvestmentPurpose(models.Model):
         null=True,
         verbose_name='год достижения цели'
     )
-    average_sum = models.IntegerField(
+    annual_return_investment = models.IntegerField(
         blank=True,
         null=True,
         verbose_name='средняя годовая доходность инвестирования'
@@ -104,6 +104,14 @@ class InvestmentPurpose(models.Model):
         related_name='investment_purposes',
         on_delete=models.CASCADE
     )
+
+    @staticmethod
+    def get_year_achievement_goal(data: dict):
+        current_year = datetime.datetime.now().year
+        res = None
+        if data['age_goal_achievement']:
+            res = current_year + (data['age_goal_achievement'] - data['age'])
+        return res
 
 
 class Compare(models.Model):
