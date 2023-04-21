@@ -63,7 +63,7 @@ class ListCompareView(MixinPermissionAuthenticated, ListAPIView):
     def get_queryset(self):
         qs = super().get_queryset()
         if not self.request.user.is_superuser:
-            qs = Compare.objects.filter(purpose__investment_portfolio__user_id=self.request.user.id). \
+            qs = Compare.objects.filter(purpose__investment_portfolio__user=self.request.user). \
                 select_related('purpose', 'purpose__investment_portfolio')
 
         return qs
@@ -75,7 +75,7 @@ class UpdateForPkCompareView(MixinPermissionAuthenticated, UpdateAPIView):
 
 
 class UpdateCompareView(UpdateForPkCompareView):
-    queryset = Compare.objects.all()
+    queryset = Compare.objects
     serializer_class = CompareBaseSerializer
 
     def get_object(self):
@@ -85,8 +85,9 @@ class UpdateCompareView(UpdateForPkCompareView):
 
         data_year = data.year
         data_month = data.month
-        obj = qs.select_related('purpose', 'purpose__investment_portfolio').get(purpose__investment_portfolio__user_id=self.request.user.id, purpose=purpose,
-                     data__year=data_year, data__month=data_month)
+        obj = qs.select_related('purpose', 'purpose__investment_portfolio').\
+            get(purpose__investment_portfolio__user_id=self.request.user.id, purpose=purpose,
+                data__year=data_year, data__month=data_month)
 
         return obj
 
