@@ -3,7 +3,7 @@ import calendar
 
 from django.db.transaction import atomic
 
-from .models.investment import InvestmentPortfolio, InvestmentPurpose, Compare
+from settlement_plan.models import InvestmentPortfolio, InvestmentPurpose, Compare
 from rest_framework import serializers
 
 
@@ -38,7 +38,6 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
 
         return inst_investment_purpose
 
-    @atomic
     def _create_compare(self, investment_sum, purpose, data):
         lst_compare = list()
         next_month_date = data['start_data_invest']
@@ -46,26 +45,23 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
         invested_funds_plan = 0
         portfolio_value_end_month_plan = data['initial_sum']
         percent_rent_month = data['percent_rent_month']
-        try:
-            for _ in range(month_invest):
-                invested_funds_plan += investment_sum
-                portfolio_value_end_month_plan += invested_funds_plan
+        for _ in range(month_invest):
+            invested_funds_plan += investment_sum
+            portfolio_value_end_month_plan += invested_funds_plan
 
-                lst_compare.append(Compare(
-                    data=next_month_date,
-                    monthly_payment_plan=investment_sum,
-                    invested_funds_plan=invested_funds_plan,
-                    portfolio_value_end_month_plan=portfolio_value_end_month_plan, #???
-                    average_monthly_value_plan=(portfolio_value_end_month_plan / 100) * (percent_rent_month / 12),
+            lst_compare.append(Compare(
+                data=next_month_date,
+                monthly_payment_plan=investment_sum,
+                invested_funds_plan=invested_funds_plan,
+                portfolio_value_end_month_plan=portfolio_value_end_month_plan,
+                average_monthly_value_plan=(portfolio_value_end_month_plan / 100) * (percent_rent_month / 12),
                     purpose=purpose,
                 ))
 
-                days = calendar.monthrange(next_month_date.year, next_month_date.month)[1]
-                next_month_date = next_month_date + datetime.timedelta(days=days)
+            days = calendar.monthrange(next_month_date.year, next_month_date.month)[1]
+            next_month_date = next_month_date + datetime.timedelta(days=days)
 
             Compare.objects.bulk_create(lst_compare)
-        except Exception as ex:
-            raise Exception(ex)
 
 
 class InvestmentPortfolioSerializer(serializers.ModelSerializer):
@@ -97,18 +93,16 @@ class CompareBaseSerializer(serializers.ModelSerializer):
     purpose = serializers.SlugField(required=False)
 
     def update(self, instance, validated_data):
-        try:
-            monthly_payment_fact = validated_data['monthly_payment_fact']
-            invested_funds_fact = instance.get_sum_invested_funds_fact(InvestmentPurpose.objects.get(id=instance.purpose.id))
-            instance.invested_funds_fact = invested_funds_fact + monthly_payment_fact
-            portfolio_value_end_month_fact = instance.purpose.initial_sum + invested_funds_fact + monthly_payment_fact
-            instance.portfolio_value_end_month_fact = portfolio_value_end_month_fact
-            instance.monthly_payment_fact = monthly_payment_fact
-            instance.average_monthly_value_fact = (portfolio_value_end_month_fact//100)*5
+        monthly_payment_fact = validated_data['monthly_payment_fact']
+        invested_funds_fact = instance.get_sum_invested_funds_fact(
+            InvestmentPurpose.objects.get(id=instance.purpose.id))
+        instance.invested_funds_fact = invested_funds_fact + monthly_payment_fact
+        portfolio_value_end_month_fact = instance.purpose.initial_sum + invested_funds_fact + monthly_payment_fact
+        instance.portfolio_value_end_month_fact = portfolio_value_end_month_fact
+        instance.monthly_payment_fact = monthly_payment_fact
+        instance.average_monthly_value_fact = (portfolio_value_end_month_fact // 100) * 5
 
-            instance.save()
-        except Exception as ex:
-            raise Exception(ex)
+        instance.save()
 
         return instance
 

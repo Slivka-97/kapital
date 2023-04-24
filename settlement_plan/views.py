@@ -1,42 +1,36 @@
 from datetime import datetime
 
 from rest_framework import permissions, status
-from rest_framework.generics import CreateAPIView, ListAPIView, ListCreateAPIView, UpdateAPIView
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework.response import Response
-from rest_framework.views import APIView
 
 from .models import InvestmentPurpose, InvestmentPortfolio, Compare
 from .serializer import InvestmentPurposeSerializer, InvestmentPortfolioSerializer, CompareBaseSerializer
-from .utils import Calculate
+from .service import Calculate
 
 
-class MixinPermissionAuthenticated:
-    permission_classes = [permissions.IsAuthenticated]
-
-
-class RecordTypeInvestView(MixinPermissionAuthenticated, CreateAPIView):
+class RecordTypeInvestView(GenericViewSet):
     serializer_class = InvestmentPurposeSerializer
 
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         request.data['type'] = kwargs["type_invest"]
-        return super().post(request, args, kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-class CalculateView(MixinPermissionAuthenticated,APIView):
+class CalculateView(GenericViewSet):
+    queryset = InvestmentPurpose.objects.none()
 
-    def post(self, request, *args, **kwargs):
-        type_invest = kwargs["type_invest"]
-        fun = getattr(Calculate, f'calculate_{type_invest}', None)
-        if not fun:
-            return Response('type_invest not a valid', status=status.HTTP_400_BAD_REQUEST)
-
-        result = fun(request.data)
+    def create(self, request, *args, **kwargs):
+        result = Calculate.calculate_sum_rent(request.data)
         if error := result.get('error'):
             return Response(error, status=status.HTTP_400_BAD_REQUEST)
         return Response(result)
 
 
-class ListInvestmentPurposeView(MixinPermissionAuthenticated, ListAPIView):
+class ListInvestmentPurposeView(GenericViewSet):
     queryset = InvestmentPurpose.objects.all()
     serializer_class = InvestmentPurposeSerializer
 
@@ -49,31 +43,49 @@ class ListInvestmentPurposeView(MixinPermissionAuthenticated, ListAPIView):
         return qs
 
 
-class ListAndCreateInvestmentPortfolioView(MixinPermissionAuthenticated, ListCreateAPIView):
+class ListAndCreateInvestmentPortfolioView(GenericViewSet):
     queryset = InvestmentPortfolio.objects.all()
     serializer_class = InvestmentPortfolioSerializer
 
-    def post(self, request, *args, **kwargs):
+    def create(self, request, *args, **kwargs):
         request.data['user'] = request.user.id
-        return super().post(request, args, kwargs)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
 
-class ListCompareView(MixinPermissionAuthenticated, ListAPIView):
+class ListCompareView(GenericViewSet):
     queryset = Compare.objects.all()
     serializer_class = CompareBaseSerializer
 
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
-        qs = super().get_queryset()
-        if not self.request.user.is_superuser:
-            qs = Compare.objects.filter(purpose__investment_portfolio__user=self.request.user). \
-                select_related('purpose', 'purpose__investment_portfolio')
+        qs = Compare.objects.filter(purpose__investment_portfolio__user=self.request.user). \
+            select_related('purpose', 'purpose__investment_portfolio')
 
         return qs
 
 
-class UpdateForPkCompareView(MixinPermissionAuthenticated, UpdateAPIView):
+class UpdateForPkCompareView(ModelViewSet):
     queryset = Compare.objects.all()
     serializer_class = CompareBaseSerializer
+
+    def put(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
 
 
 class UpdateCompareView(UpdateForPkCompareView):
