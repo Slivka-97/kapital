@@ -1,8 +1,5 @@
 import datetime
 import calendar
-
-from django.db.transaction import atomic
-
 from settlement_plan.models import InvestmentPortfolio, InvestmentPurpose, Compare
 from rest_framework import serializers
 
@@ -40,11 +37,11 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
 
     def _create_compare(self, investment_sum, purpose, data):
         lst_compare = list()
-        next_month_date = data['start_data_invest']
-        month_invest = data['period_intensity_invest'] * 12
+        next_month_date = data.get('start_data_invest', datetime.datetime.now())
+        month_invest = data.get('period_intensity_invest', 12) * 12
         invested_funds_plan = 0
-        portfolio_value_end_month_plan = data['initial_sum']
-        percent_rent_month = data['percent_rent_month']
+        portfolio_value_end_month_plan = data.get('initial_sum', 500_000)
+        percent_rent_month = data.get('percent_rent_month', 5)
         for _ in range(month_invest):
             invested_funds_plan += investment_sum
             portfolio_value_end_month_plan += invested_funds_plan
@@ -74,10 +71,6 @@ class InvestmentPortfolioSerializer(serializers.ModelSerializer):
             data['year'] = datetime.date.today()
         return data
 
-    def create(self, validated_data):
-        inst = InvestmentPortfolio.objects.get_or_create(**validated_data)
-        return inst[0]
-
 
 class InvestmentPurposeBaseSerializer(serializers.ModelSerializer):
     class Meta:
@@ -93,7 +86,7 @@ class CompareBaseSerializer(serializers.ModelSerializer):
     purpose = serializers.SlugField(required=False)
 
     def update(self, instance, validated_data):
-        monthly_payment_fact = validated_data['monthly_payment_fact']
+        monthly_payment_fact = validated_data.get('monthly_payment_fact', 0)
         invested_funds_fact = instance.get_sum_invested_funds_fact(
             InvestmentPurpose.objects.get(id=instance.purpose.id))
         instance.invested_funds_fact = invested_funds_fact + monthly_payment_fact

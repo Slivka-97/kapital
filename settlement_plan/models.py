@@ -14,9 +14,9 @@ class InvestmentPortfolio(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     year = models.DateField(default=datetime.date.today())
-    currency = models.CharField(max_length=3, choices=TypeCurrency.choices, null=False, blank=False, verbose_name='валюта')
-    fact_price = models.IntegerField(null=False, blank=False, verbose_name='Фактическая стоимость портфеля на начало года')
-    plan_price = models.IntegerField(null=False, blank=False, verbose_name='Планируемая стоимость портфеля на начало года')
+    currency = models.CharField('валюта', max_length=3, choices=TypeCurrency.choices)
+    fact_price = models.IntegerField('Фактическая стоимость портфеля на начало года')
+    plan_price = models.IntegerField('Планируемая стоимость портфеля на начало года')
 
     class Meta:
         verbose_name = 'Инвестиционный портфель'
@@ -28,21 +28,21 @@ class InvestmentPortfolio(models.Model):
 
 class InvestmentPurpose(models.Model):
     class Type(TextChoices):
-        investment_sum = 'investment_sum', 'Какую сумму необходимо инвестировать ежемесячно в течение'
-        sum_rent = 'sum_rent', 'Какую сумму ежемесячной ренты'
-        age_rent = 'age_rent', 'В каком возрасте я смогу получить ренту'
-        invest_year = 'invest_year', 'С какой годовой доходностью я должен инвестировать'
+        INVESTMENT_SUM = 'investment_sum', 'Какую сумму необходимо инвестировать ежемесячно в течение'
+        SUM_RENT = 'sum_rent', 'Какую сумму ежемесячной ренты'
+        AGE_RENT = 'age_rent', 'В каком возрасте я смогу получить ренту'
+        INVEST_YEAR = 'invest_year', 'С какой годовой доходностью я должен инвестировать'
 
-    age = models.PositiveIntegerField(help_text='возраст')
-    initial_sum = models.PositiveIntegerField(help_text='начальный капитал')
-    type = models.CharField(max_length=254, choices=Type.choices, verbose_name='Вариант инвестирования')
-    period_intensity_invest = models.IntegerField(default=0, verbose_name='период активного ежемесячного инвестирования')
-    start_data_invest = models.DateField(blank=True, null=True, verbose_name='дата начала инвестирования')
-    age_goal_achievement = models.PositiveIntegerField(blank=True, null=True, verbose_name='планируемый возраст достижения цели')
-    year_achievement_goal = models.IntegerField(blank=True, null=True, verbose_name='год достижения цели')
-    annual_return_investment = models.IntegerField(blank=True, null=True, verbose_name='средняя годовая доходность инвестирования')
-    percent_rent_month = models.IntegerField(blank=True, null=True, verbose_name='% ежемесячной ренты по достижению возраста')
-    sum_rent_month = models.IntegerField(blank=True, null=True, verbose_name='размер ежемесячной ренты')
+    age = models.PositiveIntegerField('возраст')
+    initial_sum = models.PositiveIntegerField('начальный капитал')
+    type = models.CharField('Вариант инвестирования', max_length=254, choices=Type.choices)
+    period_intensity_invest = models.IntegerField('период активного ежемесячного инвестирования', default=0)
+    start_data_invest = models.DateField('дата начала инвестирования', blank=True, null=True)
+    age_goal_achievement = models.PositiveIntegerField('планируемый возраст достижения цели', blank=True, null=True)
+    year_achievement_goal = models.IntegerField('год достижения цели', blank=True, null=True)
+    annual_return_investment = models.IntegerField('средняя годовая доходность инвестирования', blank=True, null=True)
+    percent_rent_month = models.IntegerField('% ежемесячной ренты по достижению возраста', blank=True, null=True)
+    sum_rent_month = models.IntegerField('размер ежемесячной ренты', blank=True, null=True)
     investment_portfolio = models.ForeignKey(InvestmentPortfolio, related_name='investment_purposes', on_delete=models.CASCADE)
 
     class Meta:
@@ -55,26 +55,25 @@ class InvestmentPurpose(models.Model):
     @staticmethod
     def get_year_achievement_goal(data: dict):
         current_year = datetime.datetime.now().year
-        res = None
-        if data['age_goal_achievement']:
-            res = current_year + (data['age_goal_achievement'] - data['age'])
-        return res
+        if data.get('age_goal_achievement', None):
+            return current_year + (data.get('age_goal_achievement') - data.get('age', 0))
+        return None
 
 
 class Compare(models.Model):
     data = models.DateField()
-    monthly_payment_plan = models.IntegerField(default=0, verbose_name='Ежемесячный взнос план', blank=True, null=True,)
-    monthly_payment_fact = models.IntegerField(default=0, verbose_name='Ежемесячный взнос Факт', blank=True, null=True,)
-    invested_funds_plan = models.IntegerField(default=0, verbose_name='Вложено средств с накопительным итогом план', blank=True, null=True,)
-    invested_funds_fact = models.IntegerField(default=0, verbose_name='Вложено средств с накопительным итогом Факт', blank=True, null=True,)
-    portfolio_value_end_month_plan = models.IntegerField(default=0, verbose_name='Стоимость портфеля на конец месяца план', blank=True, null=True,)
-    portfolio_value_end_month_fact = models.IntegerField(default=0, verbose_name='Стоимость портфеля на конец месяца Факт', blank=True, null=True,)
-    average_monthly_value_plan = models.IntegerField(default=0, verbose_name='Среднемесячная доходность план', blank=True, null=True,)
-    average_monthly_value_fact = models.IntegerField(default=0, verbose_name='Среднемесячная доходность Факт', blank=True, null=True,)
-    profit_month_plan = models.IntegerField(default=0, verbose_name='Прибыль за месяц план', blank=True, null=True,)
-    profit_month_fact = models.IntegerField(default=0, verbose_name='Прибыль за месяц Факт', blank=True, null=True,)
-    loss_month_plan = models.IntegerField(default=0, verbose_name='Убыток за месяц план', blank=True, null=True,)
-    loss_month_fact = models.IntegerField(default=0, verbose_name='Убыток за месяц Факт', blank=True, null=True,)
+    monthly_payment_plan = models.IntegerField('Ежемесячный взнос план', default=0, blank=True, null=True)
+    monthly_payment_fact = models.IntegerField('Ежемесячный взнос Факт', default=0, blank=True, null=True)
+    invested_funds_plan = models.IntegerField('Вложено средств с накопительным итогом план', default=0, blank=True, null=True)
+    invested_funds_fact = models.IntegerField('Вложено средств с накопительным итогом Факт', default=0, blank=True, null=True)
+    portfolio_value_end_month_plan = models.IntegerField('Стоимость портфеля на конец месяца план', default=0, blank=True, null=True)
+    portfolio_value_end_month_fact = models.IntegerField('Стоимость портфеля на конец месяца Факт', default=0, blank=True, null=True)
+    average_monthly_value_plan = models.IntegerField('Среднемесячная доходность план', default=0, blank=True, null=True)
+    average_monthly_value_fact = models.IntegerField('Среднемесячная доходность Факт', default=0, blank=True, null=True)
+    profit_month_plan = models.IntegerField('Прибыль за месяц план', default=0, blank=True, null=True)
+    profit_month_fact = models.IntegerField('Прибыль за месяц Факт', default=0, blank=True, null=True)
+    loss_month_plan = models.IntegerField('Убыток за месяц план', default=0, blank=True, null=True)
+    loss_month_fact = models.IntegerField('Убыток за месяц Факт', default=0, blank=True, null=True)
     purpose = models.ForeignKey(InvestmentPurpose, on_delete=models.CASCADE, related_name='compares')
 
     class Meta:
@@ -87,6 +86,6 @@ class Compare(models.Model):
     @staticmethod
     def get_sum_invested_funds_fact(purpose):
         res = Compare.objects.filter(purpose=purpose.id).aggregate(Sum("monthly_payment_fact"))
-        return res['monthly_payment_fact__sum']
+        return res.get('monthly_payment_fact__sum', 0)
 
 
