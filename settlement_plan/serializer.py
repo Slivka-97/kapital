@@ -61,7 +61,7 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
             days = calendar.monthrange(next_month_date.year, next_month_date.month)[1]
             next_month_date = next_month_date + datetime.timedelta(days=days)
 
-            Compare.objects.bulk_create(lst_compare)
+        Compare.objects.bulk_create(lst_compare)
 
 
 class InvestmentPortfolioSerializer(serializers.ModelSerializer):

@@ -9,17 +9,6 @@ from .serializer import InvestmentPurposeSerializer, InvestmentPortfolioSerializ
 from .service import Calculate
 
 
-class RecordTypeInvestView(GenericViewSet):
-    serializer_class = InvestmentPurposeSerializer
-
-    def create(self, request, *args, **kwargs):
-        request.data['type'] = kwargs["type_invest"]
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-
 class CalculateView(GenericViewSet):
     queryset = InvestmentPurpose.objects.none()
 
@@ -30,9 +19,21 @@ class CalculateView(GenericViewSet):
         return Response(result)
 
 
-class ListInvestmentPurposeView(GenericViewSet):
-    queryset = InvestmentPurpose.objects.all()
+class ListAndCreateInvestmentPurposeView(GenericViewSet):
     serializer_class = InvestmentPurposeSerializer
+    queryset = InvestmentPurpose.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'detail': serializer.errors, 'error': True}, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -50,9 +51,10 @@ class ListAndCreateInvestmentPortfolioView(GenericViewSet):
     def create(self, request, *args, **kwargs):
         request.data['user'] = request.user.id
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'detail': serializer.errors, 'error': True}, status=status.HTTP_400_BAD_REQUEST)
 
     def list(self, request):
         queryset = self.get_queryset()
@@ -60,14 +62,9 @@ class ListAndCreateInvestmentPortfolioView(GenericViewSet):
         return Response(serializer.data)
 
 
-class ListCompareView(GenericViewSet):
+class UpdateAndListCompareView(GenericViewSet):
     queryset = Compare.objects.all()
     serializer_class = CompareBaseSerializer
-
-    def list(self, request):
-        queryset = self.get_queryset()
-        serializer = self.serializer_class(queryset, many=True)
-        return Response(serializer.data)
 
     def get_queryset(self):
         qs = Compare.objects.filter(purpose__investment_portfolio__user=self.request.user). \
@@ -75,35 +72,16 @@ class ListCompareView(GenericViewSet):
 
         return qs
 
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
 
-class UpdateForPkCompareView(ModelViewSet):
-    queryset = Compare.objects.all()
-    serializer_class = CompareBaseSerializer
-
-    def put(self, request, *args, **kwargs):
+    def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-
-
-class UpdateCompareView(UpdateForPkCompareView):
-    queryset = Compare.objects
-    serializer_class = CompareBaseSerializer
-
-    def get_object(self):
-        qs = self.get_queryset()
-        purpose = self.request.data['purpose']
-        data = datetime.strptime(self.request.data['data'], '%Y-%m-%d').date()
-
-        data_year = data.year
-        data_month = data.month
-        obj = qs.select_related('purpose', 'purpose__investment_portfolio').\
-            get(purpose__investment_portfolio__user_id=self.request.user.id, purpose=purpose,
-                data__year=data_year, data__month=data_month)
-
-        return obj
-
-
-
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'detail': serializer.errors, 'error': True}, status=status.HTTP_400_BAD_REQUEST)
