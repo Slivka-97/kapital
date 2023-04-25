@@ -36,12 +36,10 @@ class ListAndCreateInvestmentPurposeView(GenericViewSet):
         return Response(serializer.data)
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        if not self.request.user.is_superuser:
-            qs = InvestmentPurpose.objects.filter(investment_portfolio__user=self.request.user). \
+       qs = InvestmentPurpose.objects.filter(investment_portfolio__user=self.request.user). \
                 select_related('investment_portfolio')
 
-        return qs
+       return qs
 
 
 class ListAndCreateInvestmentPortfolioView(GenericViewSet):

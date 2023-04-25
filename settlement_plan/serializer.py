@@ -28,12 +28,12 @@ class InvestmentPurposeSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         _investment_sum = validated_data.pop('investment_sum')
-
-        inst_investment_purpose = InvestmentPurpose.objects.create(
-            year_achievement_goal=InvestmentPurpose.get_year_achievement_goal(self.data)
-            if validated_data.get('year_achievement_goal') is None else validated_data.pop('year_achievement_goal'),
-            **validated_data
-        )
+        if validated_data.get('year_achievement_goal') is None:
+            year_achievement_goal = InvestmentPurpose.get_year_achievement_goal(validated_data)
+        else:
+            year_achievement_goal = validated_data.pop('year_achievement_goal')
+        inst_investment_purpose = InvestmentPurpose.objects.create(year_achievement_goal=year_achievement_goal,
+                                                                   **validated_data)
         self._create_compare(_investment_sum, inst_investment_purpose, validated_data)
 
         return inst_investment_purpose

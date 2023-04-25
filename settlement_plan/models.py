@@ -2,27 +2,19 @@ import datetime
 
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models import Sum
-
-TYPE = [
-    ('investment_sum', 'Какую сумму необходимо инвестировать ежемесячно в течение'),
-    ('sum_rent', 'Какую сумму ежемесячной ренты'),
-    ('age_rent', 'В каком возрасте я смогу получить ренту'),
-    ('invest_year', 'С какой годовой доходностью я должен инвестировать'),
-]
-
-TYPE_CURRENCY = [
-    ('RUB', 'рубль'),
-    ('USD', 'доллар'),
-    ('EUR', 'евро'),
-]
+from django.db.models import Sum, TextChoices
 
 
 class InvestmentPortfolio(models.Model):
 
+    class TypeCurrency(TextChoices):
+        RUB = 'RUB', 'рубль'
+        USD = 'USD', 'доллар'
+        EUR = 'EUR', 'евро'
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     year = models.DateField(default=datetime.date.today())
-    currency = models.CharField(max_length=3, choices=TYPE_CURRENCY, null=False, blank=False, verbose_name='валюта')
+    currency = models.CharField(max_length=3, choices=TypeCurrency.choices, null=False, blank=False, verbose_name='валюта')
     fact_price = models.IntegerField(null=False, blank=False, verbose_name='Фактическая стоимость портфеля на начало года')
     plan_price = models.IntegerField(null=False, blank=False, verbose_name='Планируемая стоимость портфеля на начало года')
 
@@ -35,10 +27,15 @@ class InvestmentPortfolio(models.Model):
 
 
 class InvestmentPurpose(models.Model):
+    class Type(TextChoices):
+        investment_sum = 'investment_sum', 'Какую сумму необходимо инвестировать ежемесячно в течение'
+        sum_rent = 'sum_rent', 'Какую сумму ежемесячной ренты'
+        age_rent = 'age_rent', 'В каком возрасте я смогу получить ренту'
+        invest_year = 'invest_year', 'С какой годовой доходностью я должен инвестировать'
 
     age = models.PositiveIntegerField(help_text='возраст')
     initial_sum = models.PositiveIntegerField(help_text='начальный капитал')
-    type = models.CharField(max_length=254, choices=TYPE, verbose_name='Вариант инвестирования')
+    type = models.CharField(max_length=254, choices=Type.choices, verbose_name='Вариант инвестирования')
     period_intensity_invest = models.IntegerField(default=0, verbose_name='период активного ежемесячного инвестирования')
     start_data_invest = models.DateField(blank=True, null=True, verbose_name='дата начала инвестирования')
     age_goal_achievement = models.PositiveIntegerField(blank=True, null=True, verbose_name='планируемый возраст достижения цели')
